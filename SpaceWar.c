@@ -11,6 +11,7 @@
 #include "inc/font.h"
 
 // Configurando Joystick
+#define EIXO_Y 26    // ADC0
 #define EIXO_X 27    // ADC1
 float smoothed_value = 0;
 
@@ -142,6 +143,8 @@ int main()
 {
     stdio_init_all();
 
+    uint8_t menu = 0;
+
     //  Iniciando ADC
     adc_init();
     adc_gpio_init(EIXO_X);    
@@ -167,7 +170,8 @@ int main()
     ssd1306_rect(&ssd, 3, 3, 122, 58, true, false);  // borda fixa
     ssd1306_draw_string(&ssd, "PLAY", 48, 24);
     ssd1306_draw_string(&ssd, "SOBRE", 44, 34);
-    
+    ssd1306_rect(&ssd, 24, 32, 7, 7, true, true);  
+    ssd1306_rect(&ssd, 34, 32, 7, 7, true, false); 
     ssd1306_send_data(&ssd); // atualiza display
 
     while (true) {
@@ -175,7 +179,23 @@ int main()
         JOYSTICK();
         adc_select_input(1);
         uint16_t x_value = adc_read();
-        printf("Valor no display %d\n", x_value);        
+        printf("Valor no display %d\n", x_value); 
+        
+        adc_select_input(0);
+        uint16_t y_value = adc_read();
+        if (y_value > 3000){            
+            menu = 0; // PLAY
+            ssd1306_rect(&ssd, 24, 32, 7, 7, true, true);             
+            ssd1306_draw_char(&ssd, ' ', 32, 34);
+            ssd1306_rect(&ssd, 34, 32, 7, 7, true, false); 
+        }
+        else if (y_value < 1000){
+            menu = 1; // ABOUT            
+            ssd1306_draw_char(&ssd, ' ', 32, 24);
+            ssd1306_rect(&ssd, 24, 32, 7, 7, true, false); 
+            ssd1306_rect(&ssd, 34, 32, 7, 7, true, true); 
+        }
+        ssd1306_send_data(&ssd); // atualiza display
 
         sleep_ms(30);
     }    
