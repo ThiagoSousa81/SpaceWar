@@ -97,8 +97,7 @@ void npClear()
 }
 
 void matrixSetPlayer(int position, const uint8_t r, const uint8_t g, const uint8_t b) 
-{
-    npClear();
+{    
     /*  Gabarito do Display
     24, 23, 22, 21, 20
     15, 16, 17, 18, 19
@@ -136,14 +135,11 @@ void matrixSetPlayer(int position, const uint8_t r, const uint8_t g, const uint8
             npSetLED(1, r, g, b);
             npSetLED(9, r, g, b);            
         break;
-    }
-    
-    npUpdate();
+    }        
 }
 
 void matrixSetEnemy(int position, const uint8_t r, const uint8_t g, const uint8_t b)
-{
-    npClear();
+{    
     /*  Gabarito do Display
     24, 23, 22, 21, 20
     15, 16, 17, 18, 19
@@ -181,9 +177,7 @@ void matrixSetEnemy(int position, const uint8_t r, const uint8_t g, const uint8_
             npSetLED(20, r, g, b);
             npSetLED(21, r, g, b);            
         break;
-    }
-    
-    npUpdate();
+    }        
 }
 
 
@@ -223,6 +217,7 @@ int main()
 
     while (true) {
         // Lê o eixo X (ADC1)
+        npClear();
         matrixSetEnemy(3, 80, 80, 0);
         JOYSTICK();
         adc_select_input(1);
@@ -245,6 +240,7 @@ int main()
         }
         ssd1306_send_data(&ssd); // atualiza display
 
+        npUpdate(); // Atualiza matriz
         sleep_ms(30);
     }    
 }
@@ -263,8 +259,6 @@ void JOYSTICK() {
     
     // Imprime o valor suavizado
     printf("Valor suavizado: %d\n", (int)smoothed_value);
-
-    npClear();
-    matrixSetPlayer(smoothed_value, 0, 80, 80);
-    npUpdate();    
+    
+    matrixSetPlayer(smoothed_value, 0, 80, 80);     
 }
