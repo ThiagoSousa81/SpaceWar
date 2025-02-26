@@ -5,14 +5,14 @@
 #include "hardware/adc.h"
 #include "ws2812.pio.h"     // Biblioteca PIO para controle de LEDs WS2812
 
-#define SMOOTHING_FACTOR 0.1 // Fator de suavização (0.0 a 1.0)
-float smooth_value = 0.0;
+#define SMOOTHING_FACTOR 0.8 // Fator de suavização (0.0 a 1.0)
 
 #include "inc/ssd1306.h"
 #include "inc/font.h"
 
 // Configurando Joystick
 #define EIXO_X 27    // ADC1
+float smoothed_value = 0;
 
 #define LED_PIN 7
 #define LED_COUNT 25     // Número de LEDs na matriz
@@ -25,13 +25,6 @@ float smooth_value = 0.0;
 // Configurando Display
 #define DISPLAY_WIDTH 128
 #define DISPLAY_HEIGHT 64
-
-
-float smooth(float current_value) {
-    // Suaviza a transição entre o valor atual e o novo valor
-    smooth_value += (current_value - smooth_value) * SMOOTHING_FACTOR;
-    return smooth_value;
-}
 
 int map_value(float value, float in_min, float in_max, int out_min, int out_max) {
     // Mapeia o valor de uma faixa para outra
@@ -78,9 +71,9 @@ void npUpdate()
 {
     for (uint i = 0; i < LED_COUNT; ++i) // Iterar sobre todos os LEDs
     {
-        pio_sm_put_blocking(np_pio, sm, leds[i].G); // Enviar componente vermelho
-        pio_sm_put_blocking(np_pio, sm, leds[i].R); // Enviar componente verde        
-        pio_sm_put_blocking(np_pio, sm, leds[i].B); // Enviar componente azul
+        pio_sm_put_blocking(np_pio, sm, leds[i].G); // Enviar componente Verde
+        pio_sm_put_blocking(np_pio, sm, leds[i].R); // Enviar componente Vermelho        
+        pio_sm_put_blocking(np_pio, sm, leds[i].B); // Enviar componente Azul
     }
 }
 
@@ -98,8 +91,6 @@ void npClear()
     for (uint i = 0; i < LED_COUNT; ++i) // Iterar sobre todos os LEDs
         npSetLED(i, 0, 0, 0);            // Definir cor como preta (apagado)
 }
-
-
 
 void matrixSetPlayer(int position, const uint8_t r, const uint8_t g, const uint8_t b) 
 {
@@ -153,7 +144,7 @@ int main()
 
     //  Iniciando ADC
     adc_init();
-    adc_gpio_init(EIXO_X);
+    adc_gpio_init(EIXO_X);    
 
     // I2C Initialisation. Using it at 2000Khz.
     i2c_init(I2C_PORT, 400*5000);
@@ -171,16 +162,20 @@ int main()
     ssd1306_init(&ssd, DISPLAY_WIDTH, DISPLAY_HEIGHT, false, 0x3c, I2C_PORT);
     ssd1306_config(&ssd);
     ssd1306_send_data(&ssd);
-    ssd1306_fill(&ssd, false);
-    ssd1306_send_data(&ssd);
- 
+    ssd1306_fill(&ssd, false);    
+
+    ssd1306_rect(&ssd, 3, 3, 122, 58, true, false);  // borda fixa
+    ssd1306_draw_string(&ssd, "PLAY", 48, 24);
+    ssd1306_draw_string(&ssd, "SOBRE", 44, 34);
+    
+    ssd1306_send_data(&ssd); // atualiza display
 
     while (true) {
         // Lê o eixo X (ADC1)
         JOYSTICK();
         adc_select_input(1);
         uint16_t x_value = adc_read();
-        printf("Valor no display %d\n", x_value);
+        printf("Valor no display %d\n", x_value);        
 
         sleep_ms(30);
     }    
@@ -192,10 +187,11 @@ void JOYSTICK() {
     uint16_t raw_value = adc_read();    
         
     // Mapeia a tensão para a faixa de 1 a 5
-    float mapped_value = map_value(raw_value, 30, 4080, 1, 5);
+    float mapped_value = map_value(raw_value, 30, 4090, 1, 5) + 1;
     
     // Suaviza o valor
-    float smoothed_value = smooth(mapped_value + 1);
+    // Suaviza a transição entre o valor atual e o novo valor
+    smoothed_value += ((mapped_value - smoothed_value) * SMOOTHING_FACTOR);
     
     // Imprime o valor suavizado
     printf("Valor suavizado: %d\n", (int)smoothed_value);
