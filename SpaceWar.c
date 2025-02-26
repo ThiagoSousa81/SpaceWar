@@ -29,6 +29,7 @@ float smoothed_value = 0;
 
 // Posição do Menu
 uint8_t menu = 0;
+uint8_t e_position = 3;
 
 int map_value(float value, float in_min, float in_max, int out_min, int out_max) {
     // Mapeia o valor de uma faixa para outra
@@ -36,7 +37,9 @@ int map_value(float value, float in_min, float in_max, int out_min, int out_max)
 }
 
 // Protótipos das funções
-void JOYSTICK();
+void PLAYER();
+
+void ENEMY();
 
 // Estrutura para representar um pixel com componentes RGB
 struct pixel_t
@@ -218,8 +221,8 @@ int main()
     while (true) {
         // Lê o eixo X (ADC1)
         npClear();
-        matrixSetEnemy(3, 80, 80, 0);
-        JOYSTICK();
+        ENEMY();
+        PLAYER();
         adc_select_input(1);
         uint16_t x_value = adc_read();
         printf("Valor no display %d\n", x_value); 
@@ -246,7 +249,8 @@ int main()
 }
 
 // Função do Joystick
-void JOYSTICK() {    
+void PLAYER() 
+{    
     adc_select_input(1);
     uint16_t raw_value = adc_read();    
         
@@ -261,4 +265,26 @@ void JOYSTICK() {
     printf("Valor suavizado: %d\n", (int)smoothed_value);
     
     matrixSetPlayer(smoothed_value, 0, 80, 80);     
+}
+
+void ENEMY()
+{
+    // Gera um número aleatório entre 0 e 1
+    int direction = rand() % 2; // 0 para decrementar, 1 para incrementar
+
+    // Atualiza a posição com base na direção
+    if (direction == 0) {
+        // Tenta decrementar a posição
+        if (e_position > 1) {
+            e_position--;
+        }
+    } else {
+        // Tenta incrementar a posição
+        if (e_position < 5) {
+            e_position++;
+        }
+    }
+    matrixSetEnemy(e_position, 80, 80, 0);
+    // Exibe a nova posição
+    printf("Nova posição do inimigo: %d\n", e_position);
 }
