@@ -27,6 +27,9 @@ float smoothed_value = 0;
 #define DISPLAY_WIDTH 128
 #define DISPLAY_HEIGHT 64
 
+// Posição do Menu
+uint8_t menu = 0;
+
 int map_value(float value, float in_min, float in_max, int out_min, int out_max) {
     // Mapeia o valor de uma faixa para outra
     return (int)((value - in_min) * (out_max - out_min) / (in_max - in_min) + out_min);
@@ -138,12 +141,55 @@ void matrixSetPlayer(int position, const uint8_t r, const uint8_t g, const uint8
     npUpdate();
 }
 
+void matrixSetEnemy(int position, const uint8_t r, const uint8_t g, const uint8_t b)
+{
+    npClear();
+    /*  Gabarito do Display
+    24, 23, 22, 21, 20
+    15, 16, 17, 18, 19
+    14, 13, 12, 11, 10
+    05, 06, 07, 08, 09
+    04, 03, 02, 01, 00
+    */
+    switch(position)
+    {
+        case 1:
+            npSetLED(15, r, g, b);
+            npSetLED(23, r, g, b);
+            npSetLED(24, r, g, b);            
+        break;
+        case 2:
+            npSetLED(16, r, g, b);
+            npSetLED(22, r, g, b);
+            npSetLED(23, r, g, b);
+            npSetLED(24, r, g, b);
+        break;
+        case 3:
+            npSetLED(17, r, g, b);
+            npSetLED(21, r, g, b);
+            npSetLED(22, r, g, b);
+            npSetLED(23, r, g, b);
+        break;
+        case 4:
+            npSetLED(18, r, g, b);
+            npSetLED(20, r, g, b);
+            npSetLED(21, r, g, b);
+            npSetLED(22, r, g, b);
+        break;
+        case 5:
+            npSetLED(19, r, g, b);
+            npSetLED(20, r, g, b);
+            npSetLED(21, r, g, b);            
+        break;
+    }
+    
+    npUpdate();
+}
+
 
 int main()
 {
-    stdio_init_all();
-
-    uint8_t menu = 0;
+    stdio_init_all();    
 
     //  Iniciando ADC
     adc_init();
@@ -159,6 +205,7 @@ int main()
 
     npInit(LED_PIN);  // Inicializar os LEDs
     matrixSetPlayer(3, 0, 80, 80);
+    matrixSetEnemy(3, 80, 80, 0);
 
     // Iniciando e configurando o Display
     ssd1306_t ssd;
@@ -176,6 +223,7 @@ int main()
 
     while (true) {
         // Lê o eixo X (ADC1)
+        matrixSetEnemy(3, 80, 80, 0);
         JOYSTICK();
         adc_select_input(1);
         uint16_t x_value = adc_read();
@@ -207,7 +255,7 @@ void JOYSTICK() {
     uint16_t raw_value = adc_read();    
         
     // Mapeia a tensão para a faixa de 1 a 5
-    float mapped_value = map_value(raw_value, 30, 4090, 1, 5) + 1;
+    float mapped_value = map_value(raw_value, 29, 4081, 1, 5) + 1;
     
     // Suaviza o valor
     // Suaviza a transição entre o valor atual e o novo valor
