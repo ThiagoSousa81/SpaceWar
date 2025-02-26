@@ -1,8 +1,15 @@
+//|=======================================|
+//|                                       |
+//|            Thiago Sousa               |
+//|   https://github.com/ThiagoSousa81    |
+//|                                       |
+//|=======================================|
 #include <stdio.h>
 #include "pico/stdlib.h"
 #include "hardware/i2c.h"
 #include "hardware/pio.h"
 #include "hardware/adc.h"
+#include "hardware/timer.h"  
 #include "ws2812.pio.h"     // Biblioteca PIO para controle de LEDs WS2812
 
 #define SMOOTHING_FACTOR 0.8 // Fator de suavização (0.0 a 1.0)
@@ -38,8 +45,8 @@ int map_value(float value, float in_min, float in_max, int out_min, int out_max)
 
 // Protótipos das funções
 void PLAYER();
-
 void ENEMY();
+bool repeating_timer_callback();
 
 // Estrutura para representar um pixel com componentes RGB
 struct pixel_t
@@ -108,6 +115,12 @@ void matrixSetPlayer(int position, const uint8_t r, const uint8_t g, const uint8
     05, 06, 07, 08, 09
     04, 03, 02, 01, 00
     */
+
+    for(int i = 0; i < 10; i++)
+    {
+        npSetLED(i, 0, 0, 0);
+    }
+
     switch(position)
     {
         case 1:
@@ -150,6 +163,12 @@ void matrixSetEnemy(int position, const uint8_t r, const uint8_t g, const uint8_
     05, 06, 07, 08, 09
     04, 03, 02, 01, 00
     */
+    
+    for(int i = 15; i < 25; i++)
+    {
+        npSetLED(i, 0, 0, 0);
+    }
+
     switch(position)
     {
         case 1:
@@ -218,10 +237,13 @@ int main()
     ssd1306_rect(&ssd, 34, 32, 7, 7, true, false); 
     ssd1306_send_data(&ssd); // atualiza display
 
+    // Esta estrutura armazenará informações sobre o temporizador configurado.
+    struct repeating_timer timer;
+    // Configura o temporizador para chamar a função de callback        
+    add_repeating_timer_ms(1000, repeating_timer_callback, NULL, &timer);
+
     while (true) {
-        // Lê o eixo X (ADC1)
-        npClear();
-        ENEMY();
+        // Lê o eixo X (ADC1)        
         PLAYER();
         adc_select_input(1);
         uint16_t x_value = adc_read();
@@ -244,7 +266,7 @@ int main()
         ssd1306_send_data(&ssd); // atualiza display
 
         npUpdate(); // Atualiza matriz
-        sleep_ms(30);
+        sleep_ms(20);
     }    
 }
 
@@ -255,7 +277,7 @@ void PLAYER()
     uint16_t raw_value = adc_read();    
         
     // Mapeia a tensão para a faixa de 1 a 5
-    float mapped_value = map_value(raw_value, 29, 4081, 1, 5) + 1;
+    float mapped_value = map_value(raw_value, 31, 4081, 1, 5) + 1;
     
     // Suaviza o valor
     // Suaviza a transição entre o valor atual e o novo valor
@@ -287,4 +309,11 @@ void ENEMY()
     matrixSetEnemy(e_position, 80, 80, 0);
     // Exibe a nova posição
     printf("Nova posição do inimigo: %d\n", e_position);
+}
+
+bool repeating_timer_callback(struct repeating_timer *t)
+{
+    ENEMY();
+    // Retorna true para manter o temporizador repetindo. Se retornar false, o temporizador para.
+    return true;
 }
