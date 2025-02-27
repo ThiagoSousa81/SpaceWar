@@ -20,8 +20,10 @@
 // Configurando Joystick
 #define EIXO_Y 26    // ADC0
 #define EIXO_X 27    // ADC1
+// Suavidade na troca de valores
 float smoothed_value = 0;
 
+// Configurações da Matriz de LEDs
 #define LED_PIN 7
 #define LED_COUNT 25     // Número de LEDs na matriz
 
@@ -33,10 +35,22 @@ float smoothed_value = 0;
 // Configurando Display
 #define DISPLAY_WIDTH 128
 #define DISPLAY_HEIGHT 64
+ssd1306_t ssd;
 
-// Posição do Menu
+// Botões com Pull-Up
+const uint BUTTON_A = 5; // Pino GPIO do botão A
+const uint BUTTON_B = 6; // Pino GPIO do botão B
+// Armazena o tempo do último click de botão (em microssegundos)
+static volatile uint32_t last_time = 0;
+
+// Menu
 uint8_t menu = 0;
+// Posição do Inimigo
 uint8_t e_position = 3;
+// Estado do player
+volatile bool vivo = true;
+// Estado do jogo
+volatile bool play = false;
 
 int map_value(float value, float in_min, float in_max, int out_min, int out_max) {
     // Mapeia o valor de uma faixa para outra
@@ -46,7 +60,9 @@ int map_value(float value, float in_min, float in_max, int out_min, int out_max)
 // Protótipos das funções
 void PLAYER();
 void ENEMY();
+void menu_interface();
 bool repeating_timer_callback();
+void gpio_irq_handler(uint gpio, uint32_t events);
 
 // Estrutura para representar um pixel com componentes RGB
 struct pixel_t
@@ -210,8 +226,9 @@ int main()
     //  Iniciando ADC
     adc_init();
     adc_gpio_init(EIXO_X);    
+    adc_gpio_init(EIXO_Y);    
 
-    // I2C Initialisation. Using it at 2000Khz.
+    // Iniciando o I2C na frequência de 2000Khz.
     i2c_init(I2C_PORT, 400*5000);
     
     gpio_set_function(I2C_SDA, GPIO_FUNC_I2C);
@@ -221,33 +238,42 @@ int main()
 
     npInit(LED_PIN);  // Inicializar os LEDs
     matrixSetPlayer(3, 0, 80, 80);
-    matrixSetEnemy(3, 80, 80, 0);
+    //matrixSetEnemy(3, 80, 80, 0);
 
-    // Iniciando e configurando o Display
-    ssd1306_t ssd;
+
+    // Inicializando os botões
+    gpio_init(BUTTON_A);
+    gpio_set_dir(BUTTON_A, GPIO_IN); // Configura o pino como entrada
+    gpio_pull_up(BUTTON_A);          // Habilita o pull-up interno
+    // Configuração da interrupção com callback do botão A
+    gpio_set_irq_enabled_with_callback(BUTTON_A, GPIO_IRQ_EDGE_FALL, true, &gpio_irq_handler);    
+
+    gpio_init(BUTTON_B);
+    gpio_set_dir(BUTTON_B, GPIO_IN); // Configura o pino como entrada
+    gpio_pull_up(BUTTON_B);          // Habilita o pull-up interno
+    // Configuração da interrupção com callback do botão B
+    gpio_set_irq_enabled_with_callback(BUTTON_B, GPIO_IRQ_EDGE_FALL, true, &gpio_irq_handler);    
+
+
+    // Iniciando e configurando o Display    
     ssd1306_init(&ssd, DISPLAY_WIDTH, DISPLAY_HEIGHT, false, 0x3c, I2C_PORT);
-    ssd1306_config(&ssd);
-    ssd1306_send_data(&ssd);
+    ssd1306_config(&ssd);    
     ssd1306_fill(&ssd, false);    
-
-    ssd1306_rect(&ssd, 3, 3, 122, 58, true, false);  // borda fixa
-    ssd1306_draw_string(&ssd, "PLAY", 48, 24);
-    ssd1306_draw_string(&ssd, "SOBRE", 44, 34);
-    ssd1306_rect(&ssd, 24, 32, 7, 7, true, true);  
-    ssd1306_rect(&ssd, 34, 32, 7, 7, true, false); 
-    ssd1306_send_data(&ssd); // atualiza display
+    ssd1306_send_data(&ssd);
+    menu_interface();
 
     // Esta estrutura armazenará informações sobre o temporizador configurado.
     struct repeating_timer timer;
     // Configura o temporizador para chamar a função de callback        
     add_repeating_timer_ms(1000, repeating_timer_callback, NULL, &timer);
 
-    while (true) {
-        // Lê o eixo X (ADC1)        
+    while (true) {             
         PLAYER();
+
+        // Lê o eixo X (ADC1)   
         adc_select_input(1);
         uint16_t x_value = adc_read();
-        printf("Valor no display %d\n", x_value); 
+        //printf("Valor no display %d\n", x_value); 
         
         adc_select_input(0);
         uint16_t y_value = adc_read();
@@ -270,6 +296,16 @@ int main()
     }    
 }
 
+void menu_interface() 
+{
+    ssd1306_rect(&ssd, 3, 3, 122, 58, true, false);  // borda fixa
+    ssd1306_draw_string(&ssd, "PLAY", 48, 24);
+    ssd1306_draw_string(&ssd, "SOBRE", 44, 34);
+    ssd1306_rect(&ssd, 24, 32, 7, 7, true, true);  
+    ssd1306_rect(&ssd, 34, 32, 7, 7, true, false); 
+    ssd1306_send_data(&ssd); // atualiza display
+}
+
 // Função do Joystick
 void PLAYER() 
 {    
@@ -279,12 +315,11 @@ void PLAYER()
     // Mapeia a tensão para a faixa de 1 a 5
     float mapped_value = map_value(raw_value, 31, 4081, 1, 5) + 1;
     
-    // Suaviza o valor
     // Suaviza a transição entre o valor atual e o novo valor
     smoothed_value += ((mapped_value - smoothed_value) * SMOOTHING_FACTOR);
     
     // Imprime o valor suavizado
-    printf("Valor suavizado: %d\n", (int)smoothed_value);
+    //printf("Valor suavizado: %d\n", (int)smoothed_value);
     
     matrixSetPlayer(smoothed_value, 0, 80, 80);     
 }
@@ -313,7 +348,49 @@ void ENEMY()
 
 bool repeating_timer_callback(struct repeating_timer *t)
 {
-    ENEMY();
+    if (vivo && play)
+    {
+        ENEMY();
+    }    
     // Retorna true para manter o temporizador repetindo. Se retornar false, o temporizador para.
-    return true;
+    // A propriedade vivo indica se o player não foi atingido
+    return (vivo && play);
+}
+
+// Função de interrupção com debouncing do botão A
+void gpio_irq_handler(uint gpio, uint32_t events)
+{
+    // Obtém o tempo atual em microssegundos
+    uint32_t current_time = to_us_since_boot(get_absolute_time());
+    // Verifica se passou tempo suficiente desde o último evento
+    if (current_time - last_time > 500000) // 500 ms de debouncing
+    {
+        if (gpio == BUTTON_A)
+        {
+            
+            last_time = current_time; // Atualiza o tempo do último evento
+        }
+        else if (gpio == BUTTON_B)
+        {
+            if (menu == 0 && play == false)
+            {
+                play = true;
+            }
+            else if (menu == 1 && play == false)
+            {                
+                ssd1306_fill(&ssd, false);
+                ssd1306_rect(&ssd, 3, 3, 122, 58, true, false);  // borda fixa                                                
+
+                ssd1306_draw_string(&ssd, "SPACE WAR", 24, 20);                
+
+                ssd1306_draw_string(&ssd, "THIAGOSOUSA81", 12, 30);            
+
+                ssd1306_draw_string(&ssd, "EMBARCATECH", 18, 40);
+                ssd1306_send_data(&ssd);
+                
+                //menu_interface();
+            }
+            last_time = current_time; // Atualiza o tempo do último evento
+        }
+    }
 }
