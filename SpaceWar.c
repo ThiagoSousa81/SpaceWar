@@ -54,6 +54,8 @@ uint8_t e_position = 3;
 volatile bool vivo = true;
 // Estado do jogo
 volatile bool play = false;
+// Pontuação
+volatile uint16_t score = 0;
 
 int map_value(float value, float in_min, float in_max, int out_min, int out_max) {
     // Mapeia o valor de uma faixa para outra
@@ -64,6 +66,7 @@ int map_value(float value, float in_min, float in_max, int out_min, int out_max)
 void PLAYER();
 void ENEMY();
 void menu_interface();
+void score_display();
 void menu_select();
 bool repeating_timer_callback();
 void gpio_irq_handler(uint gpio, uint32_t events);
@@ -274,7 +277,10 @@ int main()
     while (true) {             
         PLAYER();     
 
-        if (screen == 0) menu_select();
+        if (screen == 0)
+        {
+            menu_select();
+        }
 
         npUpdate(); // Atualiza matriz
         sleep_ms(20);
@@ -315,6 +321,21 @@ void menu_select()
     ssd1306_send_data(&ssd); // atualiza display
 }
 
+void score_display()
+{
+    // Buffer para uint16_t de 3 dígitos    
+    char buffer[4];
+
+    // Converte uint16_t para string
+    sprintf(buffer, "%u", score);
+
+    ssd1306_fill(&ssd, false);    
+    ssd1306_rect(&ssd, 3, 3, 122, 58, true, false);  // borda fixa
+    ssd1306_draw_string(&ssd, "SCORE", 28, 28);
+    ssd1306_draw_string(&ssd, buffer, 76, 28);
+    ssd1306_send_data(&ssd); // atualiza display
+}
+
 // Função do Joystick
 void PLAYER() 
 {    
@@ -352,7 +373,7 @@ void ENEMY()
     }
     matrixSetEnemy(e_position, 80, 80, 0);
     // Exibe a nova posição
-    printf("Nova posição do inimigo: %d\n", e_position);
+    //printf("Nova posição do inimigo: %d\n", e_position);
 }
 
 bool repeating_timer_callback(struct repeating_timer *t)
@@ -376,13 +397,11 @@ void gpio_irq_handler(uint gpio, uint32_t events)
     {
         if (gpio == BUTTON_A)
         {            
-            last_time = current_time; // Atualiza o tempo do último evento
-        }
-        else if (gpio == BUTTON_B)
-        {
             if (menu == 0 && play == false)
             {
                 play = true;
+                screen = 2;
+                score_display();
             }
             else if (menu == 1 && !play)
             {                
@@ -395,14 +414,20 @@ void gpio_irq_handler(uint gpio, uint32_t events)
                 ssd1306_draw_string(&ssd, "THIAGOSOUSA81", 12, 30);            
 
                 ssd1306_draw_string(&ssd, "EMBARCATECH", 18, 40);
-                ssd1306_send_data(&ssd);
-                
-                //menu_interface();
+                ssd1306_send_data(&ssd);                        
             }
             else if (screen == 1 && menu == 1) 
             {
                 menu_interface();
                 screen = 0;                
+            }
+            last_time = current_time; // Atualiza o tempo do último evento
+        }
+        else if (gpio == BUTTON_B)
+        {
+            if (play == true)
+            {
+                
             }
             last_time = current_time; // Atualiza o tempo do último evento
         }
