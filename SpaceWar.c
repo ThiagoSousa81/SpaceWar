@@ -187,7 +187,7 @@ void matrixSetEnemy(int position, const uint8_t r, const uint8_t g, const uint8_
     04, 03, 02, 01, 00
     */
     
-    for(int i = 15; i < 25; i++)
+    for(int i = 10; i < 25; i++)
     {
         npSetLED(i, 0, 0, 0);
     }
@@ -225,6 +225,52 @@ void matrixSetEnemy(int position, const uint8_t r, const uint8_t g, const uint8_
     }        
 }
 
+
+void shot_player(int position, const uint8_t r, const uint8_t g, const uint8_t b)
+{
+    /*  Gabarito do Display
+    24, 23, 22, 21, 20
+    15, 16, 17, 18, 19
+    14, 13, 12, 11, 10
+    05, 06, 07, 08, 09
+    04, 03, 02, 01, 00
+    */
+   
+    for(int i = 10; i < 15; i++)
+    {
+        npSetLED(i, 0, 0, 0);
+    }
+
+    switch(position)
+    {
+        case 1:
+            npSetLED(14, r, g, b);
+            npSetLED(15, r, g, b);
+            npSetLED(24, r, g, b);            
+        break;
+        case 2:
+            npSetLED(23, r, g, b);
+            npSetLED(16, r, g, b);                        
+            npSetLED(13, r, g, b);            
+        break;
+        case 3:
+            npSetLED(22, r, g, b);
+            npSetLED(17, r, g, b);
+            npSetLED(12, r, g, b);            
+        break;
+        case 4:
+            npSetLED(21, r, g, b);
+            npSetLED(18, r, g, b);
+            npSetLED(11, r, g, b);            
+        break;
+        case 5:
+            npSetLED(20, r, g, b);
+            npSetLED(19, r, g, b);
+            npSetLED(10, r, g, b);            
+        break;
+    }      
+
+}
 
 int main()
 {
@@ -427,7 +473,7 @@ void gpio_irq_handler(uint gpio, uint32_t events)
         {
             if (play == true)
             {
-                
+                shot_player(smoothed_value, 80, 0, 80);
             }
             last_time = current_time; // Atualiza o tempo do último evento
         }
