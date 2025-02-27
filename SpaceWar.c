@@ -354,7 +354,7 @@ bool repeating_timer_callback(struct repeating_timer *t)
     }    
     // Retorna true para manter o temporizador repetindo. Se retornar false, o temporizador para.
     // A propriedade vivo indica se o player não foi atingido
-    return (vivo && play);
+    return true;
 }
 
 // Função de interrupção com debouncing do botão A
@@ -366,8 +366,7 @@ void gpio_irq_handler(uint gpio, uint32_t events)
     if (current_time - last_time > 500000) // 500 ms de debouncing
     {
         if (gpio == BUTTON_A)
-        {
-            
+        {            
             last_time = current_time; // Atualiza o tempo do último evento
         }
         else if (gpio == BUTTON_B)
