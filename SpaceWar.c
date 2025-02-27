@@ -384,7 +384,7 @@ void gpio_irq_handler(uint gpio, uint32_t events)
             {
                 play = true;
             }
-            else if (menu == 1 && play == false)
+            else if (menu == 1 && !play)
             {                
                 screen = 1;
                 ssd1306_fill(&ssd, false);
@@ -399,7 +399,7 @@ void gpio_irq_handler(uint gpio, uint32_t events)
                 
                 //menu_interface();
             }
-            else if (screen == 1) 
+            else if (screen == 1 && menu == 1) 
             {
                 menu_interface();
                 screen = 0;                
