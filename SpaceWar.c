@@ -43,6 +43,9 @@ const uint BUTTON_B = 6; // Pino GPIO do botão B
 // Armazena o tempo do último click de botão (em microssegundos)
 static volatile uint32_t last_time = 0;
 
+// Tela do display
+// 0 = menu, 1 = sobre, 2 = placar
+uint8_t screen = 0;
 // Menu
 uint8_t menu = 0;
 // Posição do Inimigo
@@ -61,6 +64,7 @@ int map_value(float value, float in_min, float in_max, int out_min, int out_max)
 void PLAYER();
 void ENEMY();
 void menu_interface();
+void menu_select();
 bool repeating_timer_callback();
 void gpio_irq_handler(uint gpio, uint32_t events);
 
@@ -268,28 +272,9 @@ int main()
     add_repeating_timer_ms(1000, repeating_timer_callback, NULL, &timer);
 
     while (true) {             
-        PLAYER();
+        PLAYER();     
 
-        // Lê o eixo X (ADC1)   
-        adc_select_input(1);
-        uint16_t x_value = adc_read();
-        //printf("Valor no display %d\n", x_value); 
-        
-        adc_select_input(0);
-        uint16_t y_value = adc_read();
-        if (y_value > 3000){            
-            menu = 0; // PLAY
-            ssd1306_rect(&ssd, 24, 32, 7, 7, true, true);             
-            ssd1306_draw_char(&ssd, ' ', 32, 34);
-            ssd1306_rect(&ssd, 34, 32, 7, 7, true, false); 
-        }
-        else if (y_value < 1000){
-            menu = 1; // ABOUT            
-            ssd1306_draw_char(&ssd, ' ', 32, 24);
-            ssd1306_rect(&ssd, 24, 32, 7, 7, true, false); 
-            ssd1306_rect(&ssd, 34, 32, 7, 7, true, true); 
-        }
-        ssd1306_send_data(&ssd); // atualiza display
+        if (screen == 0) menu_select();
 
         npUpdate(); // Atualiza matriz
         sleep_ms(20);
@@ -303,6 +288,30 @@ void menu_interface()
     ssd1306_draw_string(&ssd, "SOBRE", 44, 34);
     ssd1306_rect(&ssd, 24, 32, 7, 7, true, true);  
     ssd1306_rect(&ssd, 34, 32, 7, 7, true, false); 
+    ssd1306_send_data(&ssd); // atualiza display
+}
+
+void menu_select() 
+{
+    // Lê o eixo X (ADC1)   
+    adc_select_input(1);
+    uint16_t x_value = adc_read();
+    //printf("Valor no display %d\n", x_value); 
+    
+    adc_select_input(0);
+    uint16_t y_value = adc_read();
+    if (y_value > 3000){            
+        menu = 0; // PLAY
+        ssd1306_rect(&ssd, 24, 32, 7, 7, true, true);             
+        ssd1306_draw_char(&ssd, ' ', 32, 34);
+        ssd1306_rect(&ssd, 34, 32, 7, 7, true, false); 
+    }
+    else if (y_value < 1000){
+        menu = 1; // ABOUT            
+        ssd1306_draw_char(&ssd, ' ', 32, 24);
+        ssd1306_rect(&ssd, 24, 32, 7, 7, true, false); 
+        ssd1306_rect(&ssd, 34, 32, 7, 7, true, true); 
+    }
     ssd1306_send_data(&ssd); // atualiza display
 }
 
@@ -377,6 +386,7 @@ void gpio_irq_handler(uint gpio, uint32_t events)
             }
             else if (menu == 1 && play == false)
             {                
+                screen = 1;
                 ssd1306_fill(&ssd, false);
                 ssd1306_rect(&ssd, 3, 3, 122, 58, true, false);  // borda fixa                                                
 
@@ -388,6 +398,11 @@ void gpio_irq_handler(uint gpio, uint32_t events)
                 ssd1306_send_data(&ssd);
                 
                 //menu_interface();
+            }
+            else if (screen == 1) 
+            {
+                menu_interface();
+                screen = 0;                
             }
             last_time = current_time; // Atualiza o tempo do último evento
         }
