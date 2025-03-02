@@ -480,6 +480,8 @@ void gpio_irq_handler(uint gpio, uint32_t events)
                 {
                     matrixSetEnemy(e_position, 80, 80, 80);
                     score++;
+                    score_display();
+
                 } 
             }            
             last_time = current_time; // Atualiza o tempo do último evento
