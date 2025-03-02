@@ -474,7 +474,14 @@ void gpio_irq_handler(uint gpio, uint32_t events)
             if (play == true)
             {
                 shot_player(smoothed_value, 80, 0, 80);
-            }
+
+                // Se atingir o enemy 
+                if (smoothed_value == e_position || smoothed_value == e_position + 1 || smoothed_value == e_position - 1)
+                {
+                    matrixSetEnemy(e_position, 80, 80, 80);
+                    score++;
+                } 
+            }            
             last_time = current_time; // Atualiza o tempo do último evento
         }
     }
