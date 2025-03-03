@@ -14,10 +14,9 @@
 #include "hardware/adc.h"             // Biblioteca para conversão analógica-digital
 #include "hardware/timer.h"           // Biblioteca para gerenciamento de temporizadores
 #include "ws2812.pio.h"               // Biblioteca PIO para controle de LEDs WS2812
-
+#include "hardware/pwm.h"             // Biblioteca para interface PWM
 
 #define SMOOTHING_FACTOR 0.8 // Fator de suavização para a leitura do joystick (0.0 a 1.0)
-
 
 #include "inc/ssd1306.h"
 #include "inc/font.h"
@@ -45,6 +44,32 @@ float smoothed_value = 0; // Valor suavizado da leitura do joystick
 ssd1306_t ssd;                // Estrutura para o display SSD1306
 
 
+// Frequências das notas musicais em Hertz
+
+/*
+Dó (C) - 132 Hz
+Ré (D) - 148.5 Hz
+Mi (E) - 165 Hz
+Fá (F) - 175.956 Hz
+Sol (G) - 198 Hz
+Lá (A) - 220.044 Hz
+Si (B) - 247.500 Hz
+*/
+
+#define DO 264 // Define a frequência da nota Dó
+#define RE 297 // Define a frequência da nota Ré
+#define MI 330 // Define a frequência da nota Mi
+#define FA 351.912 // Define a frequência da nota Fá
+#define SOL 396 // Define a frequência da nota Sol
+#define LA 440.088 // Define a frequência da nota Lá
+#define SI 495 // Define a frequência da nota Si
+
+
+// Pinos do Buzzer
+#define BUZZER_A 21 // Define o pino GPIO 21 como o pino conectado ao buzzer A
+#define BUZZER_B 10 // Define o pino GPIO 10 como o pino conectado ao buzzer B
+
+
 /* Configurações dos Botões */
 const uint BUTTON_A = 5; // Pino GPIO do botão A
 const uint BUTTON_B = 6; // Pino GPIO do botão B
@@ -68,12 +93,13 @@ int map_value(float value, float in_min, float in_max, int out_min, int out_max)
 
 
 /* Protótipos das funções */
-void PLAYER();                     // Função para controlar o jogador
-void ENEMY();                      // Função para controlar o inimigo
-void menu_interface();             // Função para exibir a interface do menu
-void score_display();              // Função para exibir a pontuação
-void menu_select();                // Função para selecionar opções do menu
-bool repeating_timer_callback();    // Função de callback do temporizador
+void nota(uint32_t frequencia, uint32_t tempo_ms); // Função para tocar notas
+void PLAYER();                                     // Função para controlar o jogador
+void ENEMY();                                      // Função para controlar o inimigo
+void menu_interface();                             // Função para exibir a interface do menu
+void score_display();                              // Função para exibir a pontuação
+void menu_select();                                // Função para selecionar opções do menu
+bool repeating_timer_callback();                   // Função de callback do temporizador
 void gpio_irq_handler(uint gpio, uint32_t events); // Função de interrupção para os botões
 
 
@@ -109,6 +135,14 @@ void npInit(uint pin) {
     }
 }
 
+// Função para configurar PWM no pino especificado
+void configure_pwm(uint gpio) {
+    gpio_set_function(gpio, GPIO_FUNC_PWM);
+    uint slice_num = pwm_gpio_to_slice_num(gpio);
+    pwm_config config = pwm_get_default_config();
+    pwm_config_set_clkdiv(&config, 4.0f);  // Define a divisão do clock
+    pwm_init(slice_num, &config, true);
+}
 
 /* Função para atualizar os LEDs no hardware */
 void npUpdate() {
@@ -335,6 +369,13 @@ int main() {
     // Configura o temporizador para chamar a função de callback a cada segundo
     add_repeating_timer_ms(1000, repeating_timer_callback, NULL, &timer);
 
+    nota(DO, 250); // Toca a nota Sol por 250 ms
+    sleep_ms(250);
+    nota(FA, 250); // Toca a nota Lá por 250 ms
+    sleep_ms(250);
+    nota(SI, 250); // Toca a nota Si por 250 ms
+    sleep_ms(250);
+
     while (true) { // Loop principal do jogo
         PLAYER(); // Atualiza a lógica do jogador
 
@@ -394,6 +435,27 @@ void score_display() {
     ssd1306_send_data(&ssd); // Atualiza o display
 }
 
+// Função para tocar uma frequência por uma duração específica
+void nota(uint32_t frequencia, uint32_t tempo_ms) {
+    configure_pwm(BUZZER_A); // Configura o PWM para o buzzer A
+    configure_pwm(BUZZER_B); // Configura o PWM para o buzzer B
+
+    uint32_t delay = 1000000 / (frequencia * 2);  // Calcula o tempo de atraso em microssegundos
+    uint32_t ciclo = frequencia * tempo_ms / 1000;  // Calcula o número de ciclos necessários
+
+    // Configura o PWM para a frequência desejada
+    pwm_set_gpio_level(BUZZER_A, 32768); // Define o nível de PWM (50% de duty cycle)
+    pwm_set_gpio_level(BUZZER_B, 32768); // Define o nível de PWM (50% de duty cycle)
+
+    // Loop para gerar a onda quadrada no buzzer
+    for (uint32_t i = 0; i < ciclo; i++) {
+        sleep_us(delay); // Espera pelo tempo de atraso calculado
+    }
+
+    pwm_set_gpio_level(BUZZER_A, 0); // Desliga o PWM
+
+    pwm_set_gpio_level(BUZZER_B, 0); // Desliga o PWM
+}
 
 // Função do Joystick
 void PLAYER() 
@@ -486,6 +548,8 @@ void gpio_irq_handler(uint gpio, uint32_t events)
         {
             if (play == true)
             {
+                //nota(LA, 250); // Toca a nota Lá por 250 ms 
+
                 shot_player(smoothed_value, 80, 0, 80);
 
                 // Se atingir o enemy 

@@ -63,6 +63,7 @@ target_link_libraries(SpaceWar
         hardware_timer
         hardware_clocks
         hardware_pio        
+        hardware_pwm
         )
 
 pico_add_extra_outputs(SpaceWar)
