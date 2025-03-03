@@ -18,7 +18,7 @@ GPIO22 - Acesso ao ADC do RP2040
 
 <div align=center>
 
-![Circuito](./Captura de tela 2025-03-03 175044.png)
+![Circuito](https://github.com/ThiagoSousa81/SpaceWar/blob/main/circuito.png)
 
 </div>
 
