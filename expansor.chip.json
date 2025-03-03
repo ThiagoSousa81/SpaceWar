@@ -1,0 +1,21 @@
+{
+    "name": "expansor",
+    "author": "Thiago Sousa",
+    "pins": [
+        "GND",
+        "GP16",
+        "GP17",
+        "GND",
+        "GP28",
+        "3V3",
+        "GND",    
+        "GP18",
+        "GP19",
+        "GP20",
+        "GP04",
+        "GP09",
+        "GP08",
+        "5V"
+    ],
+    "controls": []
+}

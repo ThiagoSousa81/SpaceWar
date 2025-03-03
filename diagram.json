@@ -131,7 +131,26 @@
     { "type": "wokwi-buzzer", "id": "bz1", "top": 35, "left": -350, "attrs": { "volume": "0.1" } },
     { "type": "wokwi-gnd", "id": "gnd8", "top": 153.6, "left": -336.6, "attrs": {} },
     { "type": "wokwi-buzzer", "id": "bz2", "top": 35, "left": -75, "attrs": { "volume": "0.1" } },
-    { "type": "wokwi-gnd", "id": "gnd9", "top": 163.2, "left": -58.2, "attrs": {} }
+    { "type": "wokwi-gnd", "id": "gnd9", "top": 163.2, "left": -58.2, "attrs": {} },
+    { "type": "chip-expansor", "id": "chip1", "top": 39.42, "left": 331.2, "attrs": {"name": "expansor",
+    "author": "Thiago Sousa",
+    "pins": [
+        "GND",
+        "GP16",
+        "GP17",
+        "GND",
+        "GP28",
+        "3V3",
+        "GND",    
+        "GP18",
+        "GP19",
+        "GP20",
+        "GP04",
+        "GP09",
+        "GP08",
+        "5V"
+    ],
+    "controls": []} }
   ],
   "connections": [
     [ "pico:GP0", "$serialMonitor:RX", "", [] ],
